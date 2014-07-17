@@ -1,0 +1,144 @@
+
+ SoftTSC - A software implementation of an MPT1327 Trunking System Controller
+==============================================================================
+Copyright (c) 2014 Paul Banks (M3OSL), Some rights reserved 
+See COPYING file for license information.
+
+The latest package can be found here: http://paulbanks.org/projects/softtsc/
+
+1. Introduction
+===============
+SoftTSC is an implementation of an MPT1327 Trunking System Controller (TSC).
+
+It implements a basic TSC which operates on a single channel and will connect 
+voice calls between radio units (RU).
+
+It works by using your computer's sound card to send and receive, in real time,
+the FFSK control signals required to control the RU's on the system.
+
+Setting up this system requires some knowledge of MPT1327 systems. The best
+reference for this is the MPT1327 specification which is available for download
+, free, from the UK OFCOM website.
+
+2. Software installation
+========================
+
+These instructions are for Fedora 20. If you have a different Linux 
+distribution you'll need to adjust these instructions to suit.
+
+2.1 Prerequisites
+-----------------
+
+To build and run this software you will need to install the following packages
+in addition to the standard development environment.
+
+  e.g. sudo yum install <packagename>
+
+  python3
+  qjackctl (and dependencies)
+  glib2
+  cmake
+
+2.2 Building the software
+--------------------------
+
+The software is built using the CMake utility.
+
+1) Make a new directory called build and change to it.
+
+  mkdir build
+  cd build
+
+2) Run the CMake utility
+
+  cmake ..
+
+3) Run the make utility - this will compile the C modules
+
+  make
+
+3. Starting the TSC
+===================
+
+3.1 Setting up Jack Audio
+-------------------------
+
+SoftTSC uses the Jack Audio connection kit to access the sound card hardware.
+JACK provides a deterministic, low-latency, low-resource-consumption pipeline
+between the sound card and SoftTSC.
+
+You must set this up first. The easiest way to do this is to use the graphical
+interface QjackCtl. 
+
+1) Start QjackCtl. (qjackctl)
+2) Select the "Setup..." button.
+3) Check the following settings are set :
+
+    A) Frames/Period = 1024
+
+        Frames/period is important because it determines the latency between
+        the sound card and the TSC application. If this latency is too high
+        then the timeout values will not make sense. If it is too low then the
+        TSC will have less time to process each request. Right now the TSC
+        works with a latency of about 50 ms. Future versions should be able to
+        measure and compensate for higher latencies.
+
+    B) Sample rate = 48000
+
+        The modem has been designed to operate with 48000 samples/second. At
+        this time, other values will not work. This is, in part, because the
+        filters are statically defined. Future versions should be able to
+        accommodate different sample rates (subject to Nyquist, naturally.)
+
+4) Select the correct sound card by clicking the Right Arrow button next to
+   interface.
+5) Select OK.
+6) Select Start.
+
+3.2 Starting the software
+-------------------------
+
+1) Change to the "module" directory, e.g.
+
+  cd module
+
+2) Start the TSC
+
+  python3 tsc.py
+
+If you have a speaker connected to your sound card, you should now hear the 
+MPT1327 control channel. (You can send morse by typeing m followed by the text
+e.g. mM3OSL will send M3OSL. Control channel operation will be temporarily 
+interrupted at an appropriate point to send the morse code.)
+
+To stop the press Ctrl+C.
+
+4. Hardware set-up
+==================
+A TSC operates a full duplex control channel. Accordingly you will need two
+radios - a transmitting radio and a receiving radio.
+
+The transmitter should be connected to your sound card output and the receiver
+connected to the sound card input (typically line-in).
+
+5. Radio programming
+====================
+In addition to the controller, you will need to program your radios. This is
+a manufacturer dependent process often requiring proprietary software.
+
+This TSC has a default MPT1327 SYSCODE of 0x3201. Many radios implement an 
+additional numbering scheme derived from MPT1343 so this translates to an 
+MPT1343 configuration of 
+
+    [Regional, opid=100, ndd=0, lab=1(All categories permitted)]
+
+A utility for translating the MPT1327 syscodes to MPT1343 numbering scheme and
+vice-versa is included - run module/mpt1343.py
+
+6. Final set-up
+===============
+
+With the TSC running and broadcasting you should now be able to turn on the
+RUs. They should lock onto the control channel and you should be able to make
+calls between the RU's.
+
